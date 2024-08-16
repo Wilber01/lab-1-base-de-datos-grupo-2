@@ -1,0 +1,25 @@
+BEGIN TRANSACTION;
+
+-- 4. Consulta para reasignar empleados a nuevos proyectos:
+DECLARE @nuevo_proyecto INT = <nuevo_proyecto>;
+DECLARE @proyecto_completado INT = <proyecto_completado>;
+
+-- Verifica que tanto el nuevo proyecto como el proyecto completado existan
+IF EXISTS (SELECT 1 FROM Projects WHERE ProjectID = @nuevo_proyecto)
+   AND EXISTS (SELECT 1 FROM Assignments WHERE ProjectID = @proyecto_completado)
+BEGIN
+    UPDATE Assignments
+    SET ProjectID = @nuevo_proyecto
+    WHERE ProjectID = @proyecto_completado;
+    
+    PRINT 'Reasignación completada exitosamente.';
+END
+ELSE
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM Projects WHERE ProjectID = @nuevo_proyecto)
+        PRINT 'El nuevo proyecto no existe.';
+    IF NOT EXISTS (SELECT 1 FROM Assignments WHERE ProjectID = @proyecto_completado)
+        PRINT 'El proyecto completado no existe.';
+END
+
+COMMIT TRANSACTION;
