@@ -1,0 +1,26 @@
+-- 5. Procedimiento almacenado para verificar disponibilidad de empleados en proyectos:
+CREATE PROCEDURE sp_VerifyEmployeeAvailability
+    @ProjectID INT
+AS
+BEGIN
+    DECLARE @employeeCount INT;
+    DECLARE @projectEndDate DATE;
+
+    SELECT @employeeCount = COUNT(*) 
+	FROM Assignments a
+	INNER JOIN Employees e ON a.EmployeeID = e.EmployeeID
+	WHERE a.ProjectID = @ProjectID AND e.IsAvailable = 0;
+
+    IF @employeeCount > 0
+    BEGIN
+            DECLARE @newEndDate DATE;
+
+    SELECT @newEndDate = DATEADD(DAY, 7, EndDate)
+    FROM Projects
+    WHERE ProjectID = @ProjectID;
+
+    UPDATE Projects
+    SET EndDate = @newEndDate
+    WHERE ProjectID = @ProjectID;
+END
+END;
