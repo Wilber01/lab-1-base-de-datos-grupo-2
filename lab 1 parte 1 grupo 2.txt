@@ -1,0 +1,42 @@
+/*
+	1. Crear un stored procedure de calcular los bonos de salario de un empleado 
+	según la cantidad de años trabajados, si el empleado tiene más de 10 años de 
+	servicio recibe un 20% de bonus, si tiene entre 5 y 10 años recibe un 10% y 
+	si tiene menos de 5 años recibe un 5%
+*/
+
+USE [EmployeeManagement]
+GO
+CREATE PROCEDURE CalculateEmployeeBonus
+    @EmployeeID INT
+AS
+BEGIN
+    DECLARE @HireDate DATE
+    DECLARE @Salary DECIMAL(12, 4)
+    DECLARE @YearsWorked INT
+    DECLARE @BonusPercentage DECIMAL(5, 2)
+    DECLARE @BonusAmount DECIMAL(12, 4)
+    
+    -- Obtener la fecha de contratación y el salario del empleado
+    SELECT @HireDate = HireDate, @Salary = Salary
+    FROM Employees
+    WHERE EmployeeID = @EmployeeID;
+    
+    -- Calcular los años trabajados
+    SET @YearsWorked = DATEDIFF(YEAR, @HireDate, GETDATE());
+    
+    -- Determinar el porcentaje de bono basado en los años trabajados
+    IF @YearsWorked > 10
+        SET @BonusPercentage = 0.20;
+    ELSE IF @YearsWorked BETWEEN 5 AND 10
+        SET @BonusPercentage = 0.10;
+    ELSE
+        SET @BonusPercentage = 0.05;
+    
+    -- Calcular el monto del bono
+    SET @BonusAmount = @Salary * @BonusPercentage;
+    
+    -- Devolver el bono
+    SELECT @BonusAmount AS BonusAmount;
+END
+GO

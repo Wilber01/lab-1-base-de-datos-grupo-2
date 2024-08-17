@@ -1,0 +1,29 @@
+/*
+	2- Crear un trigger que controle los cambios de salario de los 
+	empleados. Los cambios se deben ver reflejados en la tabla SalaryAudit
+*/
+
+CREATE TRIGGER trgSalaryUpdate
+ON dbo.Employees
+AFTER UPDATE
+AS
+BEGIN
+    -- Verifica si la columna de Salary fue afectada en la actualización
+    IF UPDATE(Salary)
+    BEGIN
+        -- Inserta los cambios en la tabla SalaryAudit
+        INSERT INTO dbo.SalaryAudit (EmployeeID, OldSalary, NewSalary, ChangeDate)
+        SELECT 
+            i.EmployeeID, 
+            d.Salary AS OldSalary, 
+            i.Salary AS NewSalary, 
+            GETDATE() AS ChangeDate
+        FROM 
+            inserted i
+        INNER JOIN 
+            deleted d ON i.EmployeeID = d.EmployeeID
+        WHERE 
+            d.Salary <> i.Salary;
+    END
+END
+GO

@@ -1,0 +1,63 @@
+/*
+	3. Crear un stored procedure que muestre el costo total del proyecto por 
+	semana. Para calcular los costos semanales debe considerar la fecha de finalización.
+*/
+
+USE [EmployeeManagement]
+GO
+
+CREATE OR ALTER PROCEDURE GetWeeklyProjectCost
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Crear una tabla temporal para almacenar las semanas del proyecto
+    CREATE TABLE #ProjectWeeks (
+        ProjectID INT,
+        WeekStart DATE,
+        WeekEnd DATE
+    )
+
+    -- Poblar la tabla temporal con las semanas de cada proyecto
+    ;WITH WeeksCTE AS (
+        SELECT 
+            ProjectID,
+            StartDate AS WeekStart,
+            CASE 
+                WHEN DATEADD(DAY, 6, StartDate) > EndDate THEN EndDate
+                ELSE DATEADD(DAY, 6, StartDate)
+            END AS WeekEnd
+        FROM Projects
+
+        UNION ALL
+
+        SELECT 
+            Projects.ProjectID,
+            DATEADD(DAY, 1, WeeksCTE.WeekEnd),
+            CASE 
+                WHEN DATEADD(DAY, 7, WeeksCTE.WeekEnd) > Projects.EndDate THEN Projects.EndDate
+                ELSE DATEADD(DAY, 7, WeeksCTE.WeekEnd)
+            END
+        FROM WeeksCTE
+        JOIN Projects ON WeeksCTE.ProjectID = Projects.ProjectID
+        WHERE DATEADD(DAY, 1, WeeksCTE.WeekEnd) <= Projects.EndDate
+    )
+    INSERT INTO #ProjectWeeks (ProjectID, WeekStart, WeekEnd)
+    SELECT ProjectID, WeekStart, WeekEnd
+    FROM WeeksCTE
+    OPTION (MAXRECURSION 0)
+
+    -- Calcular el costo por semana
+    SELECT 
+        pw.ProjectID,
+        p.ProjectName,
+        pw.WeekStart,
+        pw.WeekEnd,
+        CAST(p.Cost * (DATEDIFF(DAY, pw.WeekStart, pw.WeekEnd) + 1) / CAST(DATEDIFF(DAY, p.StartDate, p.EndDate) + 1 AS FLOAT) AS DECIMAL(12,2)) AS WeeklyCost
+    FROM #ProjectWeeks pw
+    INNER JOIN Projects p ON pw.ProjectID = p.ProjectID
+    ORDER BY pw.ProjectID, pw.WeekStart
+
+    -- Eliminar la tabla temporal
+    DROP TABLE #ProjectWeeks
+END
